@@ -1,8 +1,11 @@
-import subprocess
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uuid
+
+# Import Temporal Client and our Workflow
+from temporalio.client import Client
+from workflows import AgentGovernanceWorkflow
 
 app = FastAPI(title="AWCP Intake Proxy")
 
@@ -25,10 +28,9 @@ class AgentTask(BaseModel):
 system_state = {
     "degraded_workflows": 0,
     "evidence_ledger": "Connected (Local MinIO)",
-    "proxy_status": "Listening on Port 8000"
+    "proxy_status": "Listening on Port 8000 (Temporal Active)"
 }
 
-# The UI will call this endpoint every 15 seconds
 @app.get("/status")
 async def get_status():
     return system_state
@@ -38,21 +40,26 @@ async def ingest_agent_task(task: AgentTask):
     workflow_id = f"AWCP-{task.agent_id}-{uuid.uuid4().hex[:6]}"
     
     try:
-        # CodeAct Sandbox Execution
-        process = subprocess.run(
-            ["python3", "-c", task.code_to_run],
-            capture_output=True, text=True, timeout=5
+        # 1. Connect to Temporal
+        client = await Client.connect("localhost:7233")
+        
+        # 2. Start the durable workflow instead of running local subprocess directly!
+        result = await client.execute_workflow(
+            AgentGovernanceWorkflow.run,
+            task.code_to_run,
+            id=workflow_id,
+            task_queue="awcp-agent-queue",
         )
         
-        # If the agent's code fails, we increase the Degraded Workflows count!
-        if process.returncode != 0:
+        # 3. If the sandbox failed, increase the Degraded Workflows count
+        if result.get("status") == "failed":
             system_state["degraded_workflows"] += 1
             
         return {
             "workflow_id": workflow_id,
-            "status": "success" if process.returncode == 0 else "failed",
-            "logs": process.stdout,
-            "errors": process.stderr
+            "status": result.get("status"),
+            "logs": result.get("output"),
+            "errors": result.get("error")
         }
     except Exception as e:
         system_state["degraded_workflows"] += 1

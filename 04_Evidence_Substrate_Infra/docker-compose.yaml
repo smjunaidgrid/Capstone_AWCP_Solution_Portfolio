@@ -1,0 +1,26 @@
+services:
+  # Temporal: The durable workflow engine (using the modern local dev server)
+  temporal:
+    image: temporalio/temporal:latest
+    command: server start-dev --ip 0.0.0.0
+    ports:
+      - "7233:7233" # Backend Client port
+      - "8233:8233" # Temporal Web UI 
+
+  # MinIO: Our secure, append-only Evidence Ledger (Object Store)
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001" # MinIO Web UI
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
+    command: server /data --console-address ":9001"
+
+  # OPA: The Open Policy Agent server for ultra-low latency governance gates
+  opa:
+    image: openpolicyagent/opa:latest
+    ports:
+      - "8181:8181"
+    command: "run --server"

@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uuid
 import httpx
+import boto3
+import json
+from datetime import datetime
 from temporalio.client import Client
 from workflows import AgentGovernanceWorkflow
 
@@ -25,8 +28,25 @@ class AgentTask(BaseModel):
 system_state = {
     "degraded_workflows": 0,
     "evidence_ledger": "Connected (Local MinIO)",
-    "proxy_status": "Listening on Port 8000 (Temporal & OPA Active)"
+    "proxy_status": "Listening on Port 8000 (Fully Armed)"
 }
+
+# --- NEW: MinIO Setup ---
+# Connect to our local MinIO Docker container
+s3_client = boto3.client(
+    's3',
+    endpoint_url='http://127.0.0.1:9000',
+    aws_access_key_id='admin',       # From docker-compose.yaml
+    aws_secret_access_key='password', # From docker-compose.yaml
+    region_name='us-east-1'
+)
+
+# Ensure the "awcp-ledger" bucket exists when the server starts
+try:
+    s3_client.head_bucket(Bucket='awcp-ledger')
+except:
+    s3_client.create_bucket(Bucket='awcp-ledger')
+# -------------------------
 
 @app.get("/status")
 async def get_status():
@@ -39,7 +59,6 @@ async def ingest_agent_task(task: AgentTask):
     
     try:
         print("1. Asking OPA for permission...")
-        # Forced to use 127.0.0.1 and added a 5-second timeout so it can't hang forever!
         async with httpx.AsyncClient() as http_client:
             opa_response = await http_client.post(
                 "http://127.0.0.1:8181/v1/data/awcp/governance/allow",
@@ -48,17 +67,12 @@ async def ingest_agent_task(task: AgentTask):
             )
             
             is_allowed = opa_response.json().get("result", False)
-            print(f"2. OPA Decision: Allowed = {is_allowed}")
-            
             if not is_allowed:
                 system_state["degraded_workflows"] += 1
-                print("3. Request BLOCKED. Returning error to agent.")
                 return {"status": "BLOCKED_BY_OPA", "reason": "Policy violation detected"}
 
-        print("3. Request APPROVED. Connecting to Temporal...")
+        print("2. Request APPROVED. Executing Durable Workflow...")
         client = await Client.connect("127.0.0.1:7233")
-        
-        print("4. Executing Durable Workflow...")
         result = await client.execute_workflow(
             AgentGovernanceWorkflow.run,
             task.code_to_run,
@@ -66,10 +80,28 @@ async def ingest_agent_task(task: AgentTask):
             task_queue="awcp-agent-queue",
         )
         
+        # --- NEW: Write to Evidence Ledger ---
+        print("3. Workflow Complete! Writing receipt to Evidence Ledger...")
+        receipt = {
+            "workflow_id": workflow_id,
+            "agent_id": task.agent_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "code_executed": task.code_to_run,
+            "result": result
+        }
+        
+        # Save the receipt as a JSON file in the MinIO bucket
+        s3_client.put_object(
+            Bucket='awcp-ledger',
+            Key=f"{workflow_id}.json",
+            Body=json.dumps(receipt, indent=2)
+        )
+        print("4. Evidence securely stored.")
+        # ------------------------------------
+        
         if result.get("status") == "failed":
             system_state["degraded_workflows"] += 1
             
-        print("5. Workflow Complete!")
         return {
             "workflow_id": workflow_id,
             "status": result.get("status"),
@@ -77,7 +109,7 @@ async def ingest_agent_task(task: AgentTask):
             "errors": result.get("error")
         }
     except Exception as e:
-        print(f"!!! ERROR OCCURRED: {str(e)} !!!")
+        print(f"!!! ERROR: {str(e)} !!!")
         system_state["degraded_workflows"] += 1
         raise HTTPException(status_code=500, detail=str(e))
 

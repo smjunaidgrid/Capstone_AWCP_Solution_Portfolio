@@ -17,3 +17,4 @@ allow if {
     # 3. The code cannot try to access the underlying operating system
     not contains(input.code_to_run, "os.system")
 }
+

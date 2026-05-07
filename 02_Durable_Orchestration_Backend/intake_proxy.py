@@ -1,3 +1,5 @@
+import sys
+from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -8,6 +10,15 @@ import json
 from datetime import datetime
 from temporalio.client import Client
 from workflows import AgentGovernanceWorkflow
+
+# --- NEW: THE DS BRIDGE ---
+# We tell Python to look in our sibling DS folder so we can import the ML tools
+ds_path = Path(__file__).resolve().parent.parent / "01_Cognitive_Shield_DS"
+sys.path.append(str(ds_path))
+
+# Now we can import the Cognitive Shield bridge you just showed me!
+from backend_bridge import build_assessment_from_backend_signal
+# --------------------------
 
 app = FastAPI(title="AWCP Intake Proxy")
 
@@ -28,25 +39,22 @@ class AgentTask(BaseModel):
 system_state = {
     "degraded_workflows": 0,
     "evidence_ledger": "Connected (Local MinIO)",
-    "proxy_status": "Listening on Port 8000 (Fully Armed)"
+    "proxy_status": "Listening (DS Cognitive Shield ACTIVE)",
+    "latest_assessment": "Waiting for agent activity..."  # Assessment Line
 }
 
-# --- NEW: MinIO Setup ---
-# Connect to our local MinIO Docker container
 s3_client = boto3.client(
     's3',
     endpoint_url='http://127.0.0.1:9000',
-    aws_access_key_id='admin',       # From docker-compose.yaml
-    aws_secret_access_key='password', # From docker-compose.yaml
+    aws_access_key_id='admin',
+    aws_secret_access_key='password',
     region_name='us-east-1'
 )
 
-# Ensure the "awcp-ledger" bucket exists when the server starts
 try:
     s3_client.head_bucket(Bucket='awcp-ledger')
 except:
     s3_client.create_bucket(Bucket='awcp-ledger')
-# -------------------------
 
 @app.get("/status")
 async def get_status():
@@ -80,24 +88,30 @@ async def ingest_agent_task(task: AgentTask):
             task_queue="awcp-agent-queue",
         )
         
-        # --- NEW: Write to Evidence Ledger ---
-        print("3. Workflow Complete! Writing receipt to Evidence Ledger...")
-        receipt = {
-            "workflow_id": workflow_id,
-            "agent_id": task.agent_id,
-            "timestamp": datetime.utcnow().isoformat(),
-            "code_executed": task.code_to_run,
-            "result": result
-        }
+        # --- NEW: THE COGNITIVE SHIELD EVALUATION ---
+        print("3. Workflow Complete! Running Cognitive Shield Assessment...")
         
+        # We pass the raw Temporal output into your DS engine!
+        assessment = build_assessment_from_backend_signal(
+            workflow_identity=workflow_id,
+            agent_id=task.agent_id,
+            runtime_type=task.runtime_type,
+            code_to_run=task.code_to_run,
+            idempotency_key=task.idempotency_key,
+            sandbox_result=result
+        )
+        
+        print("4. Writing DS Assessment to Evidence Ledger...")
         # Save the receipt as a JSON file in the MinIO bucket
         s3_client.put_object(
             Bucket='awcp-ledger',
-            Key=f"{workflow_id}.json",
-            Body=json.dumps(receipt, indent=2)
+            Key=f"{workflow_id}_assessment.json",
+            Body=json.dumps(assessment, indent=2)
         )
-        print("4. Evidence securely stored.")
-        # ------------------------------------
+        print("5. Evidence securely stored.")
+        
+        system_state["latest_assessment"] = assessment["replay_summary"]["summary"]
+        # ------------------------------------------
         
         if result.get("status") == "failed":
             system_state["degraded_workflows"] += 1
@@ -105,8 +119,7 @@ async def ingest_agent_task(task: AgentTask):
         return {
             "workflow_id": workflow_id,
             "status": result.get("status"),
-            "logs": result.get("output"),
-            "errors": result.get("error")
+            "ds_replay_summary": assessment["replay_summary"]["summary"]
         }
     except Exception as e:
         print(f"!!! ERROR: {str(e)} !!!")

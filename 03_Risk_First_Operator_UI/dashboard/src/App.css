@@ -1,38 +1,144 @@
-.App {
-  text-align: center;
+:root {
+  --paper: #F2EDE1;
+  --paper-deep: #E5DCC5;
+  --ink: #0F0E0C;
+  --ink-mute: #6B6558;
+  --pepper: #7A2E1E;
+  --teal: #265D6B;
+  --rule: rgba(26, 24, 20, 0.16);
+  --font-sans: 'IBM Plex Sans', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+body {
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  margin: 0;
+  padding: 40px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.ui-frame {
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 1100px;
+  margin: 0 auto;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.04);
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.ui-titlebar {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--paper-deep);
+  border-bottom: 1px solid var(--rule);
 }
 
-.App-link {
-  color: #61dafb;
+.ui-dot { width: 12px; height: 12px; border-radius: 50%; }
+.ui-dot.red { background: #E5484D; }
+.ui-dot.yellow { background: #F5D90A; }
+.ui-dot.green { background: #30A46C; }
+
+.ui-titlebar-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-mute);
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.ui-body { padding: 24px; }
+
+.ui-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.ui-tag {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  margin-left: 8px;
+}
+.ui-tag.teal { color: var(--teal); background: rgba(38,93,107,0.08); border-color: rgba(38,93,107,0.2); }
+.ui-tag.orange { color: var(--pepper); background: rgba(122,46,30,0.08); border-color: rgba(122,46,30,0.2); }
+
+.ui-btn {
+  background: transparent;
+  border: 1px solid var(--rule);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 8px;
+}
+.ui-btn.accent { background: var(--pepper); color: white; border: none; }
+
+.ui-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.ui-kpi {
+  background: rgba(255,255,255,0.6);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.ui-kpi-val { font-size: 32px; font-weight: 400; margin-bottom: 4px; line-height: 1; }
+.ui-kpi-val.orange { color: var(--pepper); }
+.ui-kpi-val.teal { color: var(--teal); }
+.ui-kpi-label { font-family: var(--font-mono); font-size: 10px; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 0.05em;}
+
+.ui-columns {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 16px;
+}
+
+.ui-panel {
+  background: rgba(255,255,255,0.6);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.ui-panel-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.ui-panel-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;}
+.ui-panel-sub { font-size: 12px; color: var(--ink-mute); }
+
+.ui-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ui-table th { text-align: left; padding: 12px 16px; font-family: var(--font-mono); font-size: 10px; color: var(--ink-mute); text-transform: uppercase; border-bottom: 1px solid var(--rule); }
+.ui-table td { padding: 16px; border-bottom: 1px solid rgba(26, 24, 20, 0.08); vertical-align: top; }
+
+.live-telemetry-box {
+  background: #F2EDE1;
+  border-left: 4px solid var(--teal);
+  padding: 16px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 4px;
 }

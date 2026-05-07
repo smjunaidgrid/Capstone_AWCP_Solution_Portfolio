@@ -1,0 +1,89 @@
+{
+  "scenario_id": "branching_handoff_workflow",
+  "title": "Branching Handoff Workflow",
+  "description": "A merge node receives context from two governed branches and reports deterministic lineage.",
+  "workflow_identity": "awcp-branching-demo",
+  "runtime_metadata": {
+    "owner": "ds-team",
+    "environment": "local_prototype",
+    "timestamp": "2026-04-30T00:20:00Z"
+  },
+  "feature_flags": {
+    "stale_context_guard": true,
+    "trace_sampling": true,
+    "branch_lineage_guard": true
+  },
+  "recent_handoffs": [
+    {
+      "from": "root_agent",
+      "to": "branch_a"
+    },
+    {
+      "from": "root_agent",
+      "to": "branch_b"
+    },
+    {
+      "from": "branch_a",
+      "to": "merge_agent"
+    }
+  ],
+  "prior_evidence": [
+    {
+      "event": "branch_a_completed"
+    },
+    {
+      "event": "branch_b_completed"
+    }
+  ],
+  "raw_sandbox_traces": [
+    {
+      "type": "tool_call",
+      "tool_name": "merge_context",
+      "status": "success",
+      "idempotency_key": "branch-merge-001"
+    }
+  ],
+  "workflow_metrics": {
+    "failed_write_attempts": 0,
+    "avg_latency_ms": 340
+  },
+  "graph_seed_nodes": [
+    {
+      "node_id": "root",
+      "context_hash": "hash_root",
+      "payload": {
+        "timestamp": "2026-04-30T00:17:00Z"
+      }
+    },
+    {
+      "node_id": "branch_b",
+      "context_hash": "hash_branch_b",
+      "payload": {
+        "timestamp": "2026-04-30T00:18:00Z"
+      }
+    },
+    {
+      "node_id": "branch_a",
+      "context_hash": "hash_branch_a",
+      "payload": {
+        "timestamp": "2026-04-30T00:18:00Z"
+      }
+    }
+  ],
+  "graph_seed_edges": [
+    {
+      "source": "root",
+      "target": "branch_b"
+    },
+    {
+      "source": "root",
+      "target": "branch_a"
+    },
+    {
+      "source": "branch_b",
+      "target": "merge"
+    }
+  ],
+  "parent_context_node_id": "branch_a",
+  "context_node_id": "merge"
+}

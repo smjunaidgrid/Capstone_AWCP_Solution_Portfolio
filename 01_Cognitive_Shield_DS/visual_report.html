@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cognitive Shield DS Visual Report</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #18202a;
+      --muted: #637083;
+      --line: #d9e0e8;
+      --surface: #ffffff;
+      --page: #f4f7fb;
+      --ok: #147a55;
+      --ok-bg: #e4f5ed;
+      --ok-soft: #f3fbf7;
+      --warn: #a33c12;
+      --warn-bg: #fff0e8;
+      --warn-soft: #fff8f4;
+      --accent: #2457a6;
+      --accent-bg: #e8f0ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 48px;
+    }
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: end;
+      margin-bottom: 24px;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: 32px; margin-bottom: 8px; }
+    h2 { font-size: 22px; margin-bottom: 6px; }
+    h3 { font-size: 14px; margin-bottom: 10px; text-transform: uppercase; color: var(--muted); }
+    p { overflow-wrap: anywhere; }
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .metric, .scenario-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .metric {
+      padding: 14px;
+      border-top: 4px solid var(--accent);
+    }
+    .metric:nth-child(2), .metric:nth-child(3), .metric:nth-child(4) {
+      border-top-color: var(--warn);
+    }
+    .metric strong { display: block; font-size: 28px; line-height: 1; margin-bottom: 6px; }
+    .metric span, .muted, .eyebrow { color: var(--muted); }
+    .scenario-card {
+      position: relative;
+      overflow: hidden;
+      padding: 18px;
+      margin-top: 14px;
+      border-left: 8px solid var(--ok);
+      box-shadow: 0 10px 28px rgba(24, 32, 42, 0.07);
+    }
+    .scenario-card.healthy { background: linear-gradient(90deg, var(--ok-soft), var(--surface) 22%); }
+    .scenario-card.risk {
+      background: linear-gradient(90deg, var(--warn-soft), var(--surface) 24%);
+      border-left-color: var(--warn);
+    }
+    .scenario-card header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: start;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+    }
+    .eyebrow {
+      margin-bottom: 4px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      font-weight: 700;
+    }
+    .chips {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(120px, 1fr));
+      gap: 8px;
+      width: min(430px, 100%);
+    }
+    .chip {
+      display: grid;
+      gap: 2px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      border: 1px solid var(--line);
+      min-width: 0;
+    }
+    .chip span {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: inherit;
+      opacity: 0.78;
+    }
+    .chip strong {
+      overflow-wrap: anywhere;
+      line-height: 1.2;
+    }
+    .chip.ok { background: var(--ok-bg); color: var(--ok); border-color: #afd9c4; }
+    .chip.warn { background: var(--warn-bg); color: var(--warn); border-color: #f1c6b2; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .grid > div {
+      min-width: 0;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfdff;
+    }
+    .grid > div:first-child {
+      grid-column: 1 / -1;
+      background: #f8fbff;
+      border-color: #c9d8ed;
+    }
+    .replay-copy {
+      margin-bottom: 0;
+      font-size: 16px;
+      font-weight: 650;
+    }
+    dl { margin: 0; }
+    dt { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; }
+    dd {
+      margin: 2px 0 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      overflow-wrap: anywhere;
+      font-size: 12px;
+    }
+    ul { margin: 0; padding-left: 20px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    .lineage {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .lineage-node {
+      padding: 7px 9px;
+      border: 1px solid #b8c7dc;
+      background: var(--accent-bg);
+      color: var(--accent);
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    .lineage-arrow { color: var(--muted); }
+    @media (max-width: 780px) {
+      main { width: min(100% - 20px, 1180px); padding-top: 20px; }
+      .topbar, .scenario-card header, .grid, .summary-strip { grid-template-columns: 1fr; }
+      .chips { grid-template-columns: 1fr; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="topbar">
+      <div>
+        <h1>Cognitive Shield DS Visual Report</h1>
+        <p class="muted">Fixture-backed view of Context Hash freshness, Failure Budget directives, Context Graph lineage, Artifact Ledger Folds, and Replay Summaries.</p>
+      </div>
+    </section>
+    <section class="summary-strip">
+      <div class="metric"><strong>5</strong><span>Scenarios</span></div>
+      <div class="metric"><strong>1</strong><span>Stale Context</span></div>
+      <div class="metric"><strong>3</strong><span>Budget Breaches</span></div>
+      <div class="metric"><strong>3</strong><span>Conservative Mode</span></div>
+    </section>
+    
+    <section class="scenario-card healthy">
+      <header>
+        <div>
+          <p class="eyebrow">branching_handoff_workflow</p>
+          <h2>Branching Handoff Workflow</h2>
+          <p>A merge node receives context from two governed branches and reports deterministic lineage.</p>
+        </div>
+        <div class="chips"><span class="chip ok"><span>Fresh</span><strong>True</strong></span><span class="chip ok"><span>Budget</span><strong>inside</strong></span><span class="chip ok"><span>Mode</span><strong>active</strong></span><span class="chip ok"><span>Next</span><strong>continue</strong></span></div>
+      </header>
+      <div class="grid">
+        <div>
+          <h3>Replay Summary</h3>
+          <p class="replay-copy">The agent attempted merge_context. No blocking failures were detected. Next Safe Action: continue.</p>
+        </div>
+        <div>
+          <h3>Context Hashes</h3>
+          <dl>
+            <dt>Current</dt>
+            <dd>02f9e08008000d5b5572bcd2a15d8ddac97cd51b29c795e7b4fe0de231fd21db</dd>
+            <dt>Evidence Ledger</dt>
+            <dd>02f9e08008000d5b5572bcd2a15d8ddac97cd51b29c795e7b4fe0de231fd21db</dd>
+          </dl>
+        </div>
+        <div>
+          <h3>Context Lineage</h3>
+          <div class="lineage"><span class="lineage-node">root</span><span class="lineage-arrow">-></span><span class="lineage-node">branch_a</span><span class="lineage-arrow">-></span><span class="lineage-node">branch_b</span><span class="lineage-arrow">-></span><span class="lineage-node">merge</span></div>
+        </div>
+        <div>
+          <h3>Attempted Actions</h3>
+          <ul><li>merge_context</li></ul>
+        </div>
+        <div>
+          <h3>Failed Tools</h3>
+          <p class="muted">No failed tools.</p>
+        </div>
+        <div>
+          <h3>Failure Reasons</h3>
+          <p class="muted">No blocking failure reasons.</p>
+        </div>
+      </div>
+    </section>
+    
+
+    <section class="scenario-card risk">
+      <header>
+        <div>
+          <p class="eyebrow">failed_write_workflow</p>
+          <h2>Failed Write Workflow</h2>
+          <p>Repeated write failures push the branch into Conservative Mode.</p>
+        </div>
+        <div class="chips"><span class="chip ok"><span>Fresh</span><strong>True</strong></span><span class="chip warn"><span>Budget</span><strong>breached</strong></span><span class="chip warn"><span>Mode</span><strong>conservative_mode</strong></span><span class="chip warn"><span>Next</span><strong>recommendation_only</strong></span></div>
+      </header>
+      <div class="grid">
+        <div>
+          <h3>Replay Summary</h3>
+          <p class="replay-copy">The agent attempted write_file, write_file. One or more tool calls failed; Failure budget breached. Failed tools: write_file, write_file. Next Safe Action: recommendation_only.</p>
+        </div>
+        <div>
+          <h3>Context Hashes</h3>
+          <dl>
+            <dt>Current</dt>
+            <dd>bed16cb9a8aa9bbbe00bd4f532e9ffcf6b0a8f9279bd27899c899929865cdb83</dd>
+            <dt>Evidence Ledger</dt>
+            <dd>bed16cb9a8aa9bbbe00bd4f532e9ffcf6b0a8f9279bd27899c899929865cdb83</dd>
+          </dl>
+        </div>
+        <div>
+          <h3>Context Lineage</h3>
+          <div class="lineage"><span class="lineage-node">failed_write_node_1</span></div>
+        </div>
+        <div>
+          <h3>Attempted Actions</h3>
+          <ul><li>write_file</li><li>write_file</li></ul>
+        </div>
+        <div>
+          <h3>Failed Tools</h3>
+          <table><thead><tr><th>Tool</th><th>Error</th></tr></thead><tbody><tr><td>write_file</td><td>permission denied</td></tr><tr><td>write_file</td><td>timeout</td></tr></tbody></table>
+        </div>
+        <div>
+          <h3>Failure Reasons</h3>
+          <ul><li>One or more tool calls failed</li><li>Failure budget breached</li></ul>
+        </div>
+      </div>
+    </section>
+    
+
+    <section class="scenario-card healthy">
+      <header>
+        <div>
+          <p class="eyebrow">healthy_workflow</p>
+          <h2>Healthy Workflow</h2>
+          <p>Fresh context, successful read-only tool usage, and latency inside the failure budget.</p>
+        </div>
+        <div class="chips"><span class="chip ok"><span>Fresh</span><strong>True</strong></span><span class="chip ok"><span>Budget</span><strong>inside</strong></span><span class="chip ok"><span>Mode</span><strong>active</strong></span><span class="chip ok"><span>Next</span><strong>continue</strong></span></div>
+      </header>
+      <div class="grid">
+        <div>
+          <h3>Replay Summary</h3>
+          <p class="replay-copy">The agent attempted read_state. No blocking failures were detected. Next Safe Action: continue.</p>
+        </div>
+        <div>
+          <h3>Context Hashes</h3>
+          <dl>
+            <dt>Current</dt>
+            <dd>b3005ef639d00eb65686ba6229d9b33bdb74368368ad9e042edb9bb8122ec2dd</dd>
+            <dt>Evidence Ledger</dt>
+            <dd>b3005ef639d00eb65686ba6229d9b33bdb74368368ad9e042edb9bb8122ec2dd</dd>
+          </dl>
+        </div>
+        <div>
+          <h3>Context Lineage</h3>
+          <div class="lineage"><span class="lineage-node">healthy_node_1</span></div>
+        </div>
+        <div>
+          <h3>Attempted Actions</h3>
+          <ul><li>read_state</li></ul>
+        </div>
+        <div>
+          <h3>Failed Tools</h3>
+          <p class="muted">No failed tools.</p>
+        </div>
+        <div>
+          <h3>Failure Reasons</h3>
+          <p class="muted">No blocking failure reasons.</p>
+        </div>
+      </div>
+    </section>
+    
+
+    <section class="scenario-card risk">
+      <header>
+        <div>
+          <p class="eyebrow">latency_breach_workflow</p>
+          <h2>Latency Breach Workflow</h2>
+          <p>No write failures occur, but latency exceeds the DS failure budget.</p>
+        </div>
+        <div class="chips"><span class="chip ok"><span>Fresh</span><strong>True</strong></span><span class="chip warn"><span>Budget</span><strong>breached</strong></span><span class="chip warn"><span>Mode</span><strong>conservative_mode</strong></span><span class="chip warn"><span>Next</span><strong>recommendation_only</strong></span></div>
+      </header>
+      <div class="grid">
+        <div>
+          <h3>Replay Summary</h3>
+          <p class="replay-copy">The agent attempted fetch_customer_record. Failure budget breached. Next Safe Action: recommendation_only.</p>
+        </div>
+        <div>
+          <h3>Context Hashes</h3>
+          <dl>
+            <dt>Current</dt>
+            <dd>292bcee6e48601634bce6f618d1a3f55a90fe4536fd0b1368c4026fb62e729f4</dd>
+            <dt>Evidence Ledger</dt>
+            <dd>292bcee6e48601634bce6f618d1a3f55a90fe4536fd0b1368c4026fb62e729f4</dd>
+          </dl>
+        </div>
+        <div>
+          <h3>Context Lineage</h3>
+          <div class="lineage"><span class="lineage-node">latency_node_1</span></div>
+        </div>
+        <div>
+          <h3>Attempted Actions</h3>
+          <ul><li>fetch_customer_record</li></ul>
+        </div>
+        <div>
+          <h3>Failed Tools</h3>
+          <p class="muted">No failed tools.</p>
+        </div>
+        <div>
+          <h3>Failure Reasons</h3>
+          <ul><li>Failure budget breached</li></ul>
+        </div>
+      </div>
+    </section>
+    
+
+    <section class="scenario-card risk">
+      <header>
+        <div>
+          <p class="eyebrow">stale_context_workflow</p>
+          <h2>Stale Context Workflow</h2>
+          <p>The current Governing Slice does not match the Evidence Ledger hash.</p>
+        </div>
+        <div class="chips"><span class="chip warn"><span>Fresh</span><strong>False</strong></span><span class="chip warn"><span>Budget</span><strong>breached</strong></span><span class="chip warn"><span>Mode</span><strong>conservative_mode</strong></span><span class="chip warn"><span>Next</span><strong>recommendation_only</strong></span></div>
+      </header>
+      <div class="grid">
+        <div>
+          <h3>Replay Summary</h3>
+          <p class="replay-copy">The agent attempted prepare_write. Stale Context detected against the Evidence Ledger; Failure budget breached. Next Safe Action: recommendation_only.</p>
+        </div>
+        <div>
+          <h3>Context Hashes</h3>
+          <dl>
+            <dt>Current</dt>
+            <dd>1752945c072ae9e9b3b1a242a5a0204a870bd3b79467b4d97cbedddfd3a49da5</dd>
+            <dt>Evidence Ledger</dt>
+            <dd>6e9c4e920523f32c04c124532e655ea09128621dc22b84586d5a5bd7c886d07b</dd>
+          </dl>
+        </div>
+        <div>
+          <h3>Context Lineage</h3>
+          <div class="lineage"><span class="lineage-node">stale_node_1</span></div>
+        </div>
+        <div>
+          <h3>Attempted Actions</h3>
+          <ul><li>prepare_write</li></ul>
+        </div>
+        <div>
+          <h3>Failed Tools</h3>
+          <p class="muted">No failed tools.</p>
+        </div>
+        <div>
+          <h3>Failure Reasons</h3>
+          <ul><li>Stale Context detected against the Evidence Ledger</li><li>Failure budget breached</li></ul>
+        </div>
+      </div>
+    </section>
+    
+  </main>
+</body>
+</html>

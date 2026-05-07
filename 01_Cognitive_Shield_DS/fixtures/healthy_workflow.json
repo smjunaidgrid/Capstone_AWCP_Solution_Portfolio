@@ -1,0 +1,34 @@
+{
+  "scenario_id": "healthy_workflow",
+  "title": "Healthy Workflow",
+  "description": "Fresh context, successful read-only tool usage, and latency inside the failure budget.",
+  "workflow_identity": "awcp-healthy-demo",
+  "runtime_metadata": {
+    "owner": "ds-team",
+    "environment": "local_prototype",
+    "timestamp": "2026-04-30T00:00:00Z"
+  },
+  "feature_flags": {
+    "stale_context_guard": true,
+    "trace_sampling": true
+  },
+  "recent_handoffs": [],
+  "prior_evidence": [
+    {
+      "event": "workflow_started"
+    }
+  ],
+  "raw_sandbox_traces": [
+    {
+      "type": "tool_call",
+      "tool_name": "read_state",
+      "status": "success",
+      "idempotency_key": "healthy-read-001"
+    }
+  ],
+  "workflow_metrics": {
+    "failed_write_attempts": 0,
+    "avg_latency_ms": 120
+  },
+  "context_node_id": "healthy_node_1"
+}

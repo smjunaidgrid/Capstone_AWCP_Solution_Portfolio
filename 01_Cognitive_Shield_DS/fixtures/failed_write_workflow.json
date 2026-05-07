@@ -1,0 +1,54 @@
+{
+  "scenario_id": "failed_write_workflow",
+  "title": "Failed Write Workflow",
+  "description": "Repeated write failures push the branch into Conservative Mode.",
+  "workflow_identity": "awcp-failed-write-demo",
+  "runtime_metadata": {
+    "owner": "ds-team",
+    "environment": "local_prototype",
+    "timestamp": "2026-04-30T00:10:00Z"
+  },
+  "feature_flags": {
+    "stale_context_guard": true,
+    "trace_sampling": true
+  },
+  "recent_handoffs": [
+    {
+      "from": "planner",
+      "to": "executor"
+    },
+    {
+      "from": "executor",
+      "to": "repair_agent"
+    }
+  ],
+  "prior_evidence": [
+    {
+      "event": "write_attempt_failed"
+    },
+    {
+      "event": "retry_started"
+    }
+  ],
+  "raw_sandbox_traces": [
+    {
+      "type": "tool_call",
+      "tool_name": "write_file",
+      "status": "error",
+      "error_message": "permission denied",
+      "idempotency_key": "failed-write-001"
+    },
+    {
+      "type": "tool_call",
+      "tool_name": "write_file",
+      "status": "error",
+      "error_message": "timeout",
+      "idempotency_key": "failed-write-002"
+    }
+  ],
+  "workflow_metrics": {
+    "failed_write_attempts": 3,
+    "avg_latency_ms": 240
+  },
+  "context_node_id": "failed_write_node_1"
+}

@@ -1,0 +1,43 @@
+{
+  "scenario_id": "stale_context_workflow",
+  "title": "Stale Context Workflow",
+  "description": "The current Governing Slice does not match the Evidence Ledger hash.",
+  "workflow_identity": "awcp-stale-demo",
+  "runtime_metadata": {
+    "owner": "ds-team",
+    "environment": "local_prototype",
+    "timestamp": "2026-04-30T00:05:00Z"
+  },
+  "feature_flags": {
+    "stale_context_guard": true,
+    "trace_sampling": true
+  },
+  "recent_handoffs": [
+    {
+      "from": "planner",
+      "to": "executor"
+    }
+  ],
+  "prior_evidence": [
+    {
+      "event": "older_context_hash_recorded"
+    }
+  ],
+  "raw_sandbox_traces": [
+    {
+      "type": "tool_call",
+      "tool_name": "prepare_write",
+      "status": "success",
+      "idempotency_key": "stale-prepare-001"
+    }
+  ],
+  "workflow_metrics": {
+    "failed_write_attempts": 0,
+    "avg_latency_ms": 180
+  },
+  "ledger_context_payload": {
+    "workflow_identity": "awcp-stale-demo",
+    "context_version": "older"
+  },
+  "context_node_id": "stale_node_1"
+}

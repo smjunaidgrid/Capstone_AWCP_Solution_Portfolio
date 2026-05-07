@@ -19,8 +19,9 @@ services:
     command: server /data --console-address ":9001"
 
   # OPA: The Open Policy Agent server for ultra-low latency governance gates
+# OPA: The Open Policy Agent server for ultra-low latency governance gates
   opa:
     image: openpolicyagent/opa:latest
     ports:
       - "8181:8181"
-    command: "run --server"
+    command: "run --server --addr 0.0.0.0:8181"

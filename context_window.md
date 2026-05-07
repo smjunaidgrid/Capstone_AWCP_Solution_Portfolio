@@ -80,3 +80,5 @@ When acting as a coding assistant for the AWCP project, the AI MUST obey these r
 3. **Risk-First UI Assumption**: If asked to design a UI component, do not build standard "task lists." Build interfaces that only highlight errors, budget breaches, or approval gates.
 4. **Idempotency is Non-Negotiable**: Any generated API request logic must include an Idempotency Key header.
 5. **Cross-Domain Imports**: Ensure that UI components fetch data from the `intake_proxy.py` endpoints, and `intake_proxy.py` validates requests against the OPA rules in the `05` folder.
+
+Working...
